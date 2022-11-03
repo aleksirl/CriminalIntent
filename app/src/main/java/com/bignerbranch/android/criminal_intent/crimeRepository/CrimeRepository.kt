@@ -1,6 +1,7 @@
 package com.bignerbranch.android.criminal_intent.crimeRepository
 
 import android.content.Context
+import androidx.lifecycle.LiveData
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.bignerbranch.android.criminal_intent.Crime
@@ -19,9 +20,9 @@ class CrimeRepository private constructor(context: Context){
     ).build()
     private val crimeDao = database.crimeDao()
 
-    fun getCrimes(): List<Crime> = crimeDao.getCrimes()
+    fun getCrimes(): LiveData<List<Crime>> = crimeDao.getCrimes()
 
-    fun getCrime(id: UUID): Crime? = crimeDao.getCrime(id)
+    fun getCrime(id: UUID): LiveData<Crime?> = crimeDao.getCrime(id)
 
 
 

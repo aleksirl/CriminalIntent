@@ -6,7 +6,7 @@ import com.bignerbranch.android.criminal_intent.crimeRepository.CrimeRepository
 class CrimeListViewModel: ViewModel() {
 
     private val crimeRepository = CrimeRepository.get()
-    val crimes = crimeRepository.getCrimes()
+    val crimeListLiveData = crimeRepository.getCrimes()
 
 
 
