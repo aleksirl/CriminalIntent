@@ -3,7 +3,6 @@ package com.bignerbranch.android.criminal_intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,11 +13,14 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 
 import androidx.lifecycle.ViewModelProviders
+import java.util.Date
 
 import java.util.UUID
 
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
+private const val DIALOG_DATE = "DialogDate"
+private const val REQUEST_DATE = "0"
 class CrimeFragment: Fragment() {
 
     private lateinit var crime: Crime
@@ -50,10 +52,7 @@ class CrimeFragment: Fragment() {
         dateButton = view.findViewById(R.id.crime_date) as Button
         solvedCheckBox = view.findViewById(R.id.crime_solved) as CheckBox
 
-        dateButton.apply {
-            text = crime.date.toString()
-            isEnabled = false
-        }
+
         return view
     }
 //Публикация новых данных
@@ -92,12 +91,33 @@ class CrimeFragment: Fragment() {
         solvedCheckBox.apply {
             setOnCheckedChangeListener { _,isChecked -> crime.isSolved = isChecked }
         }
+        dateButton.setOnClickListener {
+            childFragmentManager.setFragmentResultListener("requestKey", viewLifecycleOwner){
+                _,bundle ->
+                val result = bundle.getSerializable("bundleKey") as Date
+                crime.date = result
+                updateUI()
+            }
+            updateUI()
+            DatePickerFragment.newInstance(crime.date).apply {
+                show(this@CrimeFragment.childFragmentManager, DIALOG_DATE)
+            }
+        }
+    }
+
+
+    override fun onStop() {
+        super.onStop()
+        crimeDetailViewModel.saveCrime(crime)
     }
 
     private fun updateUI(){
         titleField.setText(crime.title)
         dateButton.text = crime.date.toString()
-        solvedCheckBox.isChecked = crime.isSolved
+        solvedCheckBox.apply {
+            isChecked = crime.isSolved
+            jumpDrawablesToCurrentState()
+        }
     }
     companion object {
         fun newInstance(crimeId: UUID): CrimeFragment {

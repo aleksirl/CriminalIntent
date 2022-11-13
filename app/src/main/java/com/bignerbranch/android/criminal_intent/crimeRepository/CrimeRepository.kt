@@ -7,6 +7,8 @@ import androidx.room.RoomDatabase
 import com.bignerbranch.android.criminal_intent.Crime
 import com.bignerbranch.android.criminal_intent.database.CrimeDatabase
 import java.util.UUID
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 
 private const val DATABASE_NAME = "crime-database"
@@ -18,11 +20,24 @@ class CrimeRepository private constructor(context: Context){
         CrimeDatabase::class.java,
         DATABASE_NAME
     ).build()
+
+    private val executor = Executors.newSingleThreadExecutor()
     private val crimeDao = database.crimeDao()
 
     fun getCrimes(): LiveData<List<Crime>> = crimeDao.getCrimes()
 
     fun getCrime(id: UUID): LiveData<Crime?> = crimeDao.getCrime(id)
+
+    fun updateCrime(crime: Crime){
+        executor.execute{
+            crimeDao.updateCrime(crime)
+        }
+    }
+    fun addCrime (crime: Crime){
+        executor.execute {
+            crimeDao.addCrime(crime)
+        }
+    }
 
 
 
@@ -41,3 +56,4 @@ class CrimeRepository private constructor(context: Context){
     }
 
 }
+
