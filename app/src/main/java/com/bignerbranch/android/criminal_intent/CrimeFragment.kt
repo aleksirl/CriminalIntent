@@ -91,6 +91,7 @@ class CrimeFragment: Fragment() {
         solvedCheckBox.apply {
             setOnCheckedChangeListener { _,isChecked -> crime.isSolved = isChecked }
         }
+        //Нужно key к бандл ввывести в отдельные костанты
         dateButton.setOnClickListener {
             childFragmentManager.setFragmentResultListener("requestKey", viewLifecycleOwner){
                 _,bundle ->
@@ -98,7 +99,7 @@ class CrimeFragment: Fragment() {
                 crime.date = result
                 updateUI()
             }
-            updateUI()
+            //updateUI()
             DatePickerFragment.newInstance(crime.date).apply {
                 show(this@CrimeFragment.childFragmentManager, DIALOG_DATE)
             }
