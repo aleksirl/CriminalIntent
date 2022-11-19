@@ -20,12 +20,14 @@ import java.util.UUID
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
 private const val DIALOG_DATE = "DialogDate"
+private const val DIALOG_TIME = "DialogTime"
 private const val REQUEST_DATE = "0"
 class CrimeFragment: Fragment() {
 
     private lateinit var crime: Crime
     private lateinit var titleField: EditText
     private lateinit var dateButton: Button
+    private lateinit var timeButton: Button
     private lateinit var solvedCheckBox: CheckBox
 
     private val crimeDetailViewModel: CrimeDetailViewModel by lazy {
@@ -50,7 +52,9 @@ class CrimeFragment: Fragment() {
         val view = inflater.inflate(R.layout.fragment_crime, container, false)
         titleField = view.findViewById(R.id.crime_title) as EditText
         dateButton = view.findViewById(R.id.crime_date) as Button
+        timeButton = view.findViewById(R.id.crime_time) as Button
         solvedCheckBox = view.findViewById(R.id.crime_solved) as CheckBox
+
 
 
         return view
@@ -103,6 +107,12 @@ class CrimeFragment: Fragment() {
             DatePickerFragment.newInstance(crime.date).apply {
                 show(this@CrimeFragment.childFragmentManager, DIALOG_DATE)
             }
+        }
+        timeButton.setOnClickListener{
+            TimePickerFragment().apply {
+                show(this@CrimeFragment.childFragmentManager, DIALOG_TIME)
+            }
+
         }
     }
 
