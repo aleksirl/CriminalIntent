@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.bignerbranch.android.criminal_intent.Crime
 import com.bignerbranch.android.criminal_intent.database.CrimeDatabase
+import com.bignerbranch.android.criminal_intent.database.migration_1_2
 import java.util.UUID
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -19,7 +20,8 @@ class CrimeRepository private constructor(context: Context){
         context.applicationContext,
         CrimeDatabase::class.java,
         DATABASE_NAME
-    ).build()
+    ).addMigrations(migration_1_2)
+        .build()
 
     private val executor = Executors.newSingleThreadExecutor()
     private val crimeDao = database.crimeDao()
