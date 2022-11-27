@@ -1,6 +1,8 @@
 package com.bignerbranch.android.criminal_intent
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -16,11 +18,8 @@ import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
-
 import androidx.lifecycle.ViewModelProviders
-import java.util.Date
-
-import java.util.UUID
+import java.util.*
 
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
@@ -36,6 +35,7 @@ class CrimeFragment: Fragment() {
     private lateinit var solvedCheckBox: CheckBox
     private lateinit var reportButton: Button
     private lateinit var suspectButton: Button
+    private lateinit var phoneButton: Button
 
     private val crimeDetailViewModel: CrimeDetailViewModel by lazy {
         ViewModelProviders.of(this).get(CrimeDetailViewModel::class.java)
@@ -44,6 +44,11 @@ class CrimeFragment: Fragment() {
         ActivityResultContracts.PickContact()
     ) { uri: Uri? ->
         uri?.let { pickContact(it) }
+    }
+    private val selectPhone = registerForActivityResult(
+        ActivityResultContracts.PickContact()
+    ){ uri: Uri? ->
+        uri?.let { pickPhone(it) }
     }
 
 
@@ -67,6 +72,7 @@ class CrimeFragment: Fragment() {
         solvedCheckBox = view.findViewById(R.id.crime_solved) as CheckBox
         reportButton = view.findViewById(R.id.crime_report) as Button
         suspectButton = view.findViewById(R.id.crime_suspect) as Button
+        phoneButton = view.findViewById(R.id.crime_call) as Button
 
 
 
@@ -122,14 +128,43 @@ class CrimeFragment: Fragment() {
                 putExtra(Intent.EXTRA_SUBJECT,
                     getString(R.string.crime_report_subject))
             }.also { intent ->
-                startActivity(intent) }
+                val chooserIntent =
+                    Intent.createChooser(intent, getString(R.string.send_report))
+                startActivity(chooserIntent) }
         }
         suspectButton.apply {
-            //val picContactIntent = Intent (Intent.ACTION_PICK, ContactsContract.AUTHORITY_URI)
+            val pickContactIntent = Intent (Intent.ACTION_PICK, ContactsContract.AUTHORITY_URI)
             setOnClickListener{
                 selectSuspect.launch(null)
             }
+            val packageManager: PackageManager = requireActivity().packageManager
+            val resolvedActivity: ResolveInfo? =
+                packageManager.resolveActivity(pickContactIntent,
+                    PackageManager.MATCH_DEFAULT_ONLY)
+            //if (resolvedActivity == null) {
+           //    isEnabled = false
+            //}
         }
+        phoneButton.setOnClickListener {
+
+            if (crime.phone.isNotBlank()) {
+
+                val call = Uri.parse("tel:${crime.phone}")
+                val surf = Intent(Intent.ACTION_DIAL, call)
+                startActivity(surf)
+            } else {selectPhone.launch(null)}
+          //  val callContactIntent =
+           //     Intent(Intent.ACTION_DIAL).apply {
+
+            //        val phone = crime.phone
+                //    data = Uri.parse("tel:$phone")
+                //    selectPhone.launch(null)
+
+           //     }
+                    //selectPhone.launch(null)
+        }
+
+
     }
 
 
@@ -176,6 +211,38 @@ class CrimeFragment: Fragment() {
             }
         }
     }
+    private fun pickPhone (contactUri: Uri){
+        val queryField = arrayOf(ContactsContract.Contacts._ID)
+        val cursor = contactUri.let {
+            requireActivity().contentResolver.query(it,queryField, null, null, null)
+        }
+        cursor?.use {
+            if (it.count > 0){
+                it.moveToFirst()
+                val phone = it.getString(0)
+                val phoneURI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+                val numberQueryPhone = arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                val phoneWhereClause = "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?"
+                val phoneParams = arrayOf(phone)
+                val phoneCursor = requireActivity().contentResolver.query(phoneURI,numberQueryPhone,phoneWhereClause,phoneParams,null)
+                phoneCursor.use { cursorPhone ->
+                    cursorPhone?.moveToFirst()
+                    val phoneNumValue = cursorPhone?.getString(0)
+                    if (phoneNumValue != null) {
+                        crime.phone = phoneNumValue
+                    }
+                    phoneButton.text = phoneNumValue
+                }
+
+
+                crimeDetailViewModel.saveCrime(crime)
+            }
+        }
+
+
+
+
+    }
     companion object {
         fun newInstance(crimeId: UUID): CrimeFragment {
             val args = Bundle().apply {
@@ -187,4 +254,6 @@ class CrimeFragment: Fragment() {
         }
     }
 }
+
+
 
