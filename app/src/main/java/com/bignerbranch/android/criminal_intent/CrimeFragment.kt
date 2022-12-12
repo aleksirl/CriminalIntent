@@ -1,6 +1,10 @@
 package com.bignerbranch.android.criminal_intent
 
+import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -13,14 +17,20 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 
 import androidx.lifecycle.ViewModelProviders
+import java.io.File
 import java.util.Date
 
 import java.util.UUID
+import kotlin.math.roundToInt
 
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
@@ -31,11 +41,15 @@ private const val REQUEST_CONTACT = "1"
 class CrimeFragment: Fragment() {
 
     private lateinit var crime: Crime
+    private lateinit var photoFile: File
     private lateinit var titleField: EditText
     private lateinit var dateButton: Button
     private lateinit var solvedCheckBox: CheckBox
     private lateinit var reportButton: Button
     private lateinit var suspectButton: Button
+    private lateinit var photoButton: ImageButton
+    private lateinit var photoView: ImageView
+    private lateinit var photoUri: Uri
 
     private val crimeDetailViewModel: CrimeDetailViewModel by lazy {
         ViewModelProviders.of(this).get(CrimeDetailViewModel::class.java)
@@ -44,6 +58,12 @@ class CrimeFragment: Fragment() {
         ActivityResultContracts.PickContact()
     ) { uri: Uri? ->
         uri?.let { pickContact(it) }
+    }
+
+    private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()){
+        if (it){
+            updatePhotoView()
+        }
     }
 
 
@@ -67,6 +87,8 @@ class CrimeFragment: Fragment() {
         solvedCheckBox = view.findViewById(R.id.crime_solved) as CheckBox
         reportButton = view.findViewById(R.id.crime_report) as Button
         suspectButton = view.findViewById(R.id.crime_suspect) as Button
+        photoButton = view.findViewById(R.id.crime_camera) as ImageButton
+        photoView = view.findViewById(R.id.crime_photo) as ImageView
 
 
 
@@ -80,6 +102,10 @@ class CrimeFragment: Fragment() {
             Observer { crime ->
                 crime?.let {
                     this.crime = crime
+                    photoFile = crimeDetailViewModel.getPhotoFile(crime)
+                    photoUri = FileProvider.getUriForFile(requireContext(),
+                        "com.bignerbranch.android.criminal_intent.fileprovider",
+                    photoFile)
                     updateUI()
                 }
             }
@@ -130,6 +156,19 @@ class CrimeFragment: Fragment() {
                 selectSuspect.launch(null)
             }
         }
+        photoButton.apply {
+            setOnClickListener {
+                takePicture.launch(photoUri)
+            }
+
+        }
+        photoView.setOnClickListener {
+            PhotoDialogFragment.newInstance(crime.photoFileName).apply {
+                show(this@CrimeFragment.childFragmentManager,null)
+            }
+        }
+
+
     }
 
 
@@ -147,6 +186,15 @@ class CrimeFragment: Fragment() {
         }
         suspectButton.text = crime.suspect.ifEmpty {
             getString(R.string.crime_suspect_text)
+        }
+        updatePhotoView()
+    }
+    private fun updatePhotoView() {
+        if (photoFile.exists()){
+            photoView.doOnLayout {
+                val scaledDitMap = getScaledBitmap(photoFile.path, it.width, it.height)
+                photoView.setImageBitmap(scaledDitMap)
+            }
         }
     }
     private fun getCrimeReport(): String {
@@ -176,6 +224,31 @@ class CrimeFragment: Fragment() {
             }
         }
     }
+
+
+    private fun getScaledBitmap(path: String, destWidth: Int, destHeight: Int):Bitmap{
+
+        val options = BitmapFactory.Options()
+        options.inJustDecodeBounds = true
+        BitmapFactory.decodeFile(path,options)
+
+        val srcWidth = options.outWidth.toFloat()
+        val srcHeight = options.outHeight.toFloat()
+
+        val simpleSize = if (srcHeight <= destHeight && srcWidth <= destWidth){
+            1
+        }else{
+            val heightScale = srcHeight / destHeight
+            val widthScale = srcWidth / destWidth
+
+            minOf(heightScale,widthScale).roundToInt()
+        }
+
+
+        return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply
+        { inSampleSize = simpleSize })
+    }
+
     companion object {
         fun newInstance(crimeId: UUID): CrimeFragment {
             val args = Bundle().apply {
